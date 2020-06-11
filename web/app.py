@@ -15,12 +15,12 @@ saved_coll = db["savedResults"]
 
 class Variant(Resource):
     def get(self, id):
-        variant = saved_coll.find({'ID': id })
-        if variant:
-            output = {'ID': variant['ID'], 'Chromosome': variant['Chromosome'], 'Position': variant['Position'], 'Reference': variant['Reference'],
-                'Alternate': variant['Alternate'], 'Allele_frequency': variant['Allele_frequency'], 'Cancer_allele_frequency': variant['NC_frequency']}
-        else:
-            output = "No results found"
+        
+        output = []
+        for variant in var_coll.find({"ID": id}):
+            output.append({'ID': variant['ID'], 'Chromosome': variant['Chromosome'], 'Position': variant['Position'], 'Reference': variant['Reference'],
+                    'Alternate': variant['Alternate'], 'Allele_frequency': variant['Allele_frequency'], 'Cancer_allele_frequency': variant['NC_frequency']})
+
         return jsonify({"result": output})
 
 
@@ -36,6 +36,7 @@ class List(Resource):
 
 class Query(Resource):
     def get(self):
+
         chromosome = request.args.get('chromosome')
         position = request.args.get('position', type=check_if_range)
         reference = request.args.get('reference')
@@ -96,6 +97,7 @@ class SaveResult(Resource):
 
 class GetSavedResult(Resource):
     def get(self, id):
+
         rs_ids = saved_coll.find_one({'_id': ObjectId(id) })["savedIDs"]
 
         output = []
@@ -109,6 +111,7 @@ class GetSavedResult(Resource):
 
 class Register(Resource):
     def post(self):
+
         s = request.get_json()
         data=eval(s)
 
@@ -139,6 +142,13 @@ class Register(Resource):
 
 
 def check_if_range(position):
+    """
+    Checks if given position parameter is single or range
+
+    :param position: either a single position or a range position (500-600)
+
+    :return: single position as integer or 2 integers as list
+    """
     if '-' in position:
         return list(map(int, position.split('-')))
     
@@ -146,6 +156,16 @@ def check_if_range(position):
 
 
 def variantExist(chromosome, position, reference, alternate):
+    """
+    Checks if variant exists in mongoDB
+
+    :param chromosome: given chromosome
+    :param position: given position
+    :param reference: given reference
+    :param alternate: given alternate
+
+    :return boolean:
+    """
     if var_coll.find({"$and": [
             {"Chromosome": int(chromosome)},
             {"Position": int(position)},
